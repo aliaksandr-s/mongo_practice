@@ -1,7 +1,7 @@
 db.loadServerScripts();
 
 createAccountCollection();
-//createCategoriesCollection();
+createCategoriesCollection();
 
 generateTransactions();
 
@@ -49,7 +49,7 @@ function createAccountCollection() {
     db.createCollection("account");
     db.getCollection("account").remove({});
 
-    return db.getCollection('transactions').aggregate([
+    db.getCollection('transactions').aggregate([
         {
             $project: {
                 Currency: 1, Account: 1, _id: 0, name: { $concat: ["$Account", "$Currency"] }
@@ -63,5 +63,34 @@ function createAccountCollection() {
 }
 
 function createCategoriesCollection() {
+    db.createCollection("categories");
+    db.getCollection("categories").remove({});
+    
+    return db.getCollection('transactions').aggregate([
+        { $project: {"Operation Name": 1, _id: 0} },
+        { $group: {_id: "$Operation Name"} }
+    ]).toArray().forEach(function(el){
+        db.getCollection("categories").insert({"Categorie": el._id, "Operations": getOperations(el._id)})
+    })
 
+}
+
+function getOperations(categorie){
+    var list = {
+        "Grocery Shopping": ["Buying meat", "Buying fruits and vegetables", "Buying bread", "Buying dairy", "Buying personal care", "Buying frozen foods"],
+        "Clothes Shopping": ["Footwear shopping", "Accessories shopping", "Jeans shopping", "Outdoors shopping", "Sports shopping"],
+        "Rest": ["Going to the movies", "Going to the bar", "Taxi spendigs", "Coffee"],
+        "House Rent": ["Electricity bill", "Heating bill", "Water bill", "Rent bill"],
+        "Transport": ["Car gasoline", "Car maintenance"],
+        "Utilities": ["Television", "Garbage and recycling"],
+        "Internet": ["Netflix", "Streamin video", "Online gaming"],
+        "Study": ["Tuition payment", "Sudent loan payment", "School supplies"],
+        "Phone": ["App purchases", "Buying stickers"],
+        "Phone, Internet": ["Phone gaming", "Phone skype calls"],
+        "Parents": ["Dad gave some money", "Mom gave some money"],
+        "Utilities, Phone": ["Phone repair", "Phone radio"],
+        "Salary": ["Paycheck", "Freelance"]
+    }
+
+    return list[categorie]
 }
