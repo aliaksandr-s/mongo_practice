@@ -1,0 +1,15 @@
+Type,Operation Name,AmountMin,AmountMax,Currency,Rate,Period,Account
+Exp,Grocery Shopping,10,25,Byn,3,Week,Purse
+Exp,Clothes Shopping,50,400,Byn,1,Month,Purse
+Exp,Transport,10,20,Byn,2,Month,Purse
+Exp,Rest,20,50,Byn,1,Week,Purse
+Exp,Study,400,600,Byn,3,Year,Purse
+Exp,House Rent,300,350,Usd,1,Monh,Safe
+Exp,Utilities,50,150,Byn,1,Month,Card
+Exp,Internet,15,35,Byn,1,Month,Card
+Exp,Phone,10,15,Byn,1,Month,Card
+Exp,"Phone, Internet",5,7,Byn,1,Month,Card
+Exp,"Utilities, Phone",1,NumberInt(1.5),Byn,1,Month,Card
+Inc,Parents,600,1000,Usd,6,Year,Safe
+Inc,Salary,200,400,Byn,2,Month,Card
+
