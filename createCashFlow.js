@@ -4,7 +4,8 @@ createCashFlow();
 
 function createCashFlow(){
     db.getCollection('cash_flow').remove({})
-    
+    db.getCollection('account_transactions').remove({"Operation Name": "Transfer"});
+
     var dates = [],
         start_date = getFirstAndLastDates("Usd")["start_date"],
         end_date = getFirstAndLastDates("Usd")["end_date"],
@@ -88,13 +89,13 @@ function countSpendingsForTheDay(day, money){
     if (day > new Date(2016, 05, 30) && day <= new Date(2016, 06, 01)){
         // first we need to count the amount of money on PurseByr and CardByr
         var purseByr_amount = countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "PurseByr", "Exp"),
-            cardByr_exp = countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "CardByr", "Exp"),
-            cardByr_inc = countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "CardByr", "Inc");
+            cardByr_exp     = countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "CardByr", "Exp"),
+            cardByr_inc     = countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "CardByr", "Inc");
 
         createTransferTransaction("PurseByr", "PurseByn", -purseByr_amount, day);
         createTransferTransaction("CardByr", "CardByn", cardByr_inc - cardByr_exp, day);
 
-        var needTransfer = {need: true, purseByr: -purseByr_amount, cardByr: cardByr_inc - cardByr_exp};
+        //var needTransfer = {need: true, purseByr: -purseByr_amount, cardByr: cardByr_inc - cardByr_exp};
         money["Byn"] += Math.round(money["Byr"] / 10000);
         money["Byr"] = 0;
     }
@@ -104,7 +105,9 @@ function countSpendingsForTheDay(day, money){
     if (isExchangePossible(money)) {
         var info = "";
         if (money["Byr"] < 0 && money["Usd"] > 0) {
-            info = "Usd to Byr";
+            info = getInfoForExchange("Usd", "Byr", money, day);
+            //updateMoneyAmount();
+            //createExchangeTransaction();
         } else if (money["Byr"] > 0 && money["Usd"] < 0) {
             info = "Byr to Usd";
         } else if (money["Byn"] < 0 && money["Usd"] > 0) {
@@ -121,35 +124,35 @@ function countSpendingsForTheDay(day, money){
         "Byn": money["Byn"],
         "Usd": money["Usd"],
         "possibility": isExchangePossible(money),
-        "exchangeInfo": isExchangePossible(money) ? exchange_info : null,
+        //"exchangeInfo": isExchangePossible(money) ? exchange_info : null,
         "info": info,
-        "need transfer": needTransfer
+        //"need transfer": needTransfer
     }
 }
 
-function getExchangeData(day, money) {
-    var exchange_info = {};
+// function getExchangeData(day, money) {
+//     var exchange_info = {};
         
-    for (var prop in money) {
-        if (money[prop] < 0) {
-            exchange_info.need_to_buy = {currency: prop, value: money[prop]}
-        } else {
-            exchange_info.can_be_sold = {currency: prop, value: money[prop]}
-        }
-    }  
+//     for (var prop in money) {
+//         if (money[prop] < 0) {
+//             exchange_info.need_to_buy = {currency: prop, value: money[prop]}
+//         } else {
+//             exchange_info.can_be_sold = {currency: prop, value: money[prop]}
+//         }
+//     }  
 
-    exchange_info.currency_rate = getCurrencyRateForTheDay(day);
-    exchange_info.need_to_sell = {};
-    exchange_info.need_to_sell.value = Math.floor(Math.abs(exchange_info.need_to_buy.value) / exchange_info.currency_rate);
-    exchange_info.need_to_sell.value = exchange_info.need_to_sell.value > exchange_info.can_be_sold.value ?
-                                       exchange_info.can_be_sold.value : exchange_info.need_to_sell.value;
+//     exchange_info.currency_rate = getCurrencyRateForTheDay(day);
+//     exchange_info.need_to_sell = {};
+//     exchange_info.need_to_sell.value = Math.floor(Math.abs(exchange_info.need_to_buy.value) / exchange_info.currency_rate);
+//     exchange_info.need_to_sell.value = exchange_info.need_to_sell.value > exchange_info.can_be_sold.value ?
+//                                        exchange_info.can_be_sold.value : exchange_info.need_to_sell.value;
     
-    exchange_info.need_to_sell.currency = exchange_info.can_be_sold.currency
+//     exchange_info.need_to_sell.currency = exchange_info.can_be_sold.currency
     
-    exchange_info.date = new Date(day);
+//     exchange_info.date = new Date(day);
 
-    return exchange_info;
-}
+//     return exchange_info;
+// }
 
 function getCurrencyRateForTheDay(day) {
     var copy_of_the_day = new Date(day), // make a copy to prevent side effects
@@ -187,19 +190,45 @@ function countSpendingsOnAccountByDate(date, account_name, type){
 //print(countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "PurseByr", "Exp"))
 function createTransferTransaction(from, to, amount, date){
     db.getCollection('account_transactions').insert({
-        "Type": "Exp",
+        "Type": "Transfer",
         "Operation Name": "Transfer",
-        "Value": amount,
+        "Value": -amount,
         "Currency": "Byr",
         "Account": getAccountIdByName(from),
         "Date": new Date(date)
     });
     db.getCollection('account_transactions').insert({
-        "Type": "Inc",
+        "Type": "Transfer",
         "Operation Name": "Transfer",
         "Value": Math.round(amount / 10000),
         "Currency": "Byn",
         "Account": getAccountIdByName(to),
         "Date": new Date(date)
     })
+}
+
+function getInfoForExchange(from, to, money, day){
+    var currency_rate = getCurrencyRateForTheDay(day),
+        converted_amount,
+        to_buy_amount,
+        to_sell_amount;
+
+    if (from === "Usd") {
+        converted_amount = money["Usd"] * currency_rate;
+    }
+
+    if (converted_amount < -money[to]){
+        to_buy_amount = converted_amount
+    } else {
+        to_buy_amount = -money[to]
+    }
+
+    return {
+        to_sell_currency: from,
+        to_sell_amount: money[from],
+        to_buy_currency: to,
+        to_buy_amount: to_buy_amount,
+        currency_rate: currency_rate,
+        converted_amount: converted_amount
+    }
 }
