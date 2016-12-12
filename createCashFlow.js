@@ -1,6 +1,6 @@
 db.loadServerScripts();
 load("helperFuncions.js");
-//createCashFlow();
+createCashFlow();
 
 function createCashFlow(){
     db.getCollection('cash_flow').remove({})
@@ -86,8 +86,16 @@ function countSpendingsForTheDay(day, money){
     
     // if the date is a new Date(2016, 06, 01) convert BYR to BYN
     if (day > new Date(2016, 05, 30) && day <= new Date(2016, 06, 01)){
-        var needTransfer = true;
-        money["Byn"] += money["Byr"] / 10000;
+        // first we need to count the amount of money on PurseByr and CardByr
+        var purseByr_amount = countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "PurseByr", "Exp"),
+            cardByr_exp = countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "CardByr", "Exp"),
+            cardByr_inc = countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "CardByr", "Inc");
+
+        createTransferTransaction("PurseByr", "PurseByn", -purseByr_amount, day);
+        createTransferTransaction("CardByr", "CardByn", cardByr_inc - cardByr_exp, day);
+
+        var needTransfer = {need: true, purseByr: -purseByr_amount, cardByr: cardByr_inc - cardByr_exp};
+        money["Byn"] += Math.round(money["Byr"] / 10000);
         money["Byr"] = 0;
     }
 
@@ -176,4 +184,22 @@ function countSpendingsOnAccountByDate(date, account_name, type){
 }
 
 
-print(countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "PurseByr", "Exp"))
+//print(countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "PurseByr", "Exp"))
+function createTransferTransaction(from, to, amount, date){
+    db.getCollection('account_transactions').insert({
+        "Type": "Exp",
+        "Operation Name": "Transfer",
+        "Value": amount,
+        "Currency": "Byr",
+        "Account": getAccountIdByName(from),
+        "Date": new Date(date)
+    });
+    db.getCollection('account_transactions').insert({
+        "Type": "Inc",
+        "Operation Name": "Transfer",
+        "Value": Math.round(amount / 10000),
+        "Currency": "Byn",
+        "Account": getAccountIdByName(to),
+        "Date": new Date(date)
+    })
+}
