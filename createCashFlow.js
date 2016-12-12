@@ -218,14 +218,16 @@ function getInfoForExchange(from, to, money, day){
     }
 
     if (converted_amount < -money[to]){
-        to_buy_amount = converted_amount
+        to_buy_amount = converted_amount;
+        to_sell_amount = money[from];
     } else {
-        to_buy_amount = -money[to]
+        to_buy_amount = -money[to];
+        to_sell_amount = Math.round(to_buy_amount / currency_rate);
     }
 
     return {
         to_sell_currency: from,
-        to_sell_amount: money[from],
+        to_sell_amount: to_sell_amount,
         to_buy_currency: to,
         to_buy_amount: to_buy_amount,
         currency_rate: currency_rate,
