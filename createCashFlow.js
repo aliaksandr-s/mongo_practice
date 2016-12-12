@@ -1,5 +1,6 @@
 db.loadServerScripts();
-createCashFlow();
+load("helperFuncions.js");
+//createCashFlow();
 
 function createCashFlow(){
     db.getCollection('cash_flow').remove({})
@@ -83,19 +84,38 @@ function countSpendingsForTheDay(day, money){
         }        
     })
     
+    // if the date is a new Date(2016, 06, 01) convert BYR to BYN
+    if (day > new Date(2016, 05, 30) && day <= new Date(2016, 06, 01)){
+        var needTransfer = true;
+        money["Byn"] += money["Byr"] / 10000;
+        money["Byr"] = 0;
+    }
+
+
     // if money gets negative and we have money to exchange. Create two exchange transactions
     if (isExchangePossible(money)) {
+        var info = "";
+        if (money["Byr"] < 0 && money["Usd"] > 0) {
+            info = "Usd to Byr";
+        } else if (money["Byr"] > 0 && money["Usd"] < 0) {
+            info = "Byr to Usd";
+        } else if (money["Byn"] < 0 && money["Usd"] > 0) {
+            info = "Usd to Byn";
+        } else if (money["Byn"] > 0 && money["Usd"] < 0) {
+            info = "Byn to Usd"
+        }
         var exchange_info = getExchangeData(day, money)
     }
     
- 
     return {
         "Date": new Date(day),
         "Byr": money["Byr"],
         "Byn": money["Byn"],
         "Usd": money["Usd"],
         "possibility": isExchangePossible(money),
-        "exchangeInfo": isExchangePossible(money) ? exchange_info : null
+        "exchangeInfo": isExchangePossible(money) ? exchange_info : null,
+        "info": info,
+        "need transfer": needTransfer
     }
 }
 
@@ -141,3 +161,19 @@ function isExchangePossible(money){
         return false;
     }
 }
+
+function countSpendingsOnAccountByDate(date, account_name, type){
+    return db.getCollection('account_transactions').aggregate([
+        { $match : {Date: {$lte: new Date(date)}} },
+        { $match: {"Account": getAccountIdByName(account_name)} }, // cardByr
+        { $match: {"Type": type } },
+        { $group: {
+            _id: "$Account",
+            sum: { $sum: "$Value"} 
+        }},
+        { $project: {_id: 0, sum: 1}}
+    ]).toArray()[0]["sum"]
+}
+
+
+print(countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "PurseByr", "Exp"))
