@@ -89,11 +89,12 @@ function countSpendingsForTheDay(day, money) {
     // if the date is a new Date(2016, 06, 01) convert BYR to BYN
     if (day > new Date(2016, 5, 30) && day <= new Date(2016, 6, 1)) {
         // first we need to count the amount of money on PurseByr and CardByr
-        var purseByr_amount = countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "PurseByr", "Exp"),
+        var purseByr_exp = countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "PurseByr", "Exp"),
+            purseByr_inc = countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "PurseByr", "Inc"),
             cardByr_exp = countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "CardByr", "Exp"),
             cardByr_inc = countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "CardByr", "Inc");
 
-        createTransferTransaction("PurseByr", "PurseByn", -purseByr_amount, day);
+        createTransferTransaction("PurseByr", "PurseByn", purseByr_inc - purseByr_exp, day);
         createTransferTransaction("CardByr", "CardByn", cardByr_inc - cardByr_exp, day);
 
         //var needTransfer = {need: true, purseByr: -purseByr_amount, cardByr: cardByr_inc - cardByr_exp};
@@ -183,7 +184,7 @@ function isExchangePossible(money) {
 function countSpendingsOnAccountByDate(date, account_name, type) {
     return db.getCollection('account_transactions').aggregate([
         { $match: { Date: { $lte: new Date(date) } } },
-        { $match: { "Account": getAccountIdByName(account_name) } }, // cardByr
+        { $match: { "Account": getAccountIdByName(account_name) } },
         { $match: { "Type": type } },
         {
             $group: {
