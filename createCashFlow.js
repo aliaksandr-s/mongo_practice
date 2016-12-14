@@ -87,7 +87,7 @@ function countSpendingsForTheDay(day, money) {
     })
 
     // if the date is a new Date(2016, 06, 01) convert BYR to BYN
-    if (day > new Date(2016, 05, 30) && day <= new Date(2016, 06, 01)) {
+    if (day > new Date(2016, 5, 30) && day <= new Date(2016, 6, 1)) {
         // first we need to count the amount of money on PurseByr and CardByr
         var purseByr_amount = countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "PurseByr", "Exp"),
             cardByr_exp = countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "CardByr", "Exp"),
@@ -114,10 +114,18 @@ function countSpendingsForTheDay(day, money) {
             money["Byr"] += info.to_buy_amount;
 
         } else if (money["Byr"] > 0 && money["Usd"] < 0) {
-            info = "Byr to Usd";
+            info = getInfoForExchange("Byr", "Usd", money, day);
+
+            // if we can't buy at least one dollar no exchange is possible
+            if (info) {
+                createExchangeTransaction("PurseByr", "SafeUsd", info, day);
+
+                money["Byr"] -= info.to_sell_amount;
+                money["Usd"] += info.to_buy_amount;
+            }
 
         } else if (money["Byn"] < 0 && money["Usd"] > 0) {
-            
+
             info = getInfoForExchange("Usd", "Byn", money, day);
             createExchangeTransaction("SafeUsd", "PurseByn", info, day);
 
@@ -125,7 +133,15 @@ function countSpendingsForTheDay(day, money) {
             money["Byn"] += info.to_buy_amount;
 
         } else if (money["Byn"] > 0 && money["Usd"] < 0) {
-            info = "Byn to Usd";
+
+            // if we can't buy at least one dollar no exchange is possible
+            if (info) {
+                createExchangeTransaction("PurseByn", "SafeUsd", info, day);
+
+                money["Byn"] -= info.to_sell_amount;
+                money["Usd"] += info.to_buy_amount;
+            }
+
         }
         //var exchange_info = getExchangeData(day, money)
     }
@@ -135,8 +151,8 @@ function countSpendingsForTheDay(day, money) {
         "Byr": money["Byr"],
         "Byn": money["Byn"],
         "Usd": money["Usd"],
-        "possibility": isExchangePossible(money),
-        "info": info,
+        //"possibility": isExchangePossible(money),
+        //"info": info,
         //"need transfer": needTransfer
     }
 }
@@ -179,7 +195,6 @@ function countSpendingsOnAccountByDate(date, account_name, type) {
     ]).toArray()[0]["sum"]
 }
 
-
 //print(countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "PurseByr", "Exp"))
 function getInfoForExchange(from, to, money, day) {
     var currency_rate = getCurrencyRateForTheDay(day),
@@ -196,6 +211,20 @@ function getInfoForExchange(from, to, money, day) {
         } else {
             to_buy_amount = -money[to];
             to_sell_amount = Math.round(to_buy_amount / currency_rate);
+        }
+
+    } else if (from === "Byr" || from === "Byn") {
+        converted_amount = Math.round(money["Byr"] / currency_rate);
+
+        if (converted_amount < -money[to]) {
+            to_buy_amount = converted_amount;
+            to_sell_amount = money[from];
+
+            if (currency_rate > to_sell_amount) return; // we should be able to buy at least 1 dollar
+
+        } else {
+            to_buy_amount = -money[to];
+            to_sell_amount = Math.round(to_buy_amount * currency_rate);
         }
     }
 
