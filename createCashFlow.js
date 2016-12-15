@@ -1,9 +1,14 @@
 // show dbs
 // use finance
 
+var config = {
+    addExchangeTransactions: true
+}
+
 db.loadServerScripts();
 load("helperFuncions.js");
 createCashFlow();
+
 
 function createCashFlow() {
     db.getCollection('cash_flow').remove({})
@@ -107,46 +112,8 @@ function countSpendingsForTheDay(day, money) {
 
 
     // if money gets negative and we have money to exchange. Create two exchange transactions
-    if (isExchangePossible(money)) {
-        var info = "";
-        if (money["Byr"] < 0 && money["Usd"] > 0) {
-
-            info = getInfoForExchange("Usd", "Byr", money, day);
-            createExchangeTransaction("SafeUsd", "PurseByr", info, day);
-
-            money["Usd"] -= info.to_sell_amount;
-            money["Byr"] += info.to_buy_amount;
-
-        } else if (money["Byr"] > 0 && money["Usd"] < 0) {
-            info = getInfoForExchange("Byr", "Usd", money, day);
-
-            // if we can't buy at least one dollar no exchange is possible
-            if (info) {
-                createExchangeTransaction("PurseByr", "SafeUsd", info, day);
-
-                money["Byr"] -= info.to_sell_amount;
-                money["Usd"] += info.to_buy_amount;
-            }
-
-        } else if (money["Byn"] < 0 && money["Usd"] > 0) {
-
-            info = getInfoForExchange("Usd", "Byn", money, day);
-            createExchangeTransaction("SafeUsd", "PurseByn", info, day);
-
-            money["Usd"] -= info.to_sell_amount;
-            money["Byn"] += info.to_buy_amount;
-
-        } else if (money["Byn"] > 0 && money["Usd"] < 0) {
-
-            // if we can't buy at least one dollar no exchange is possible
-            if (info) {
-                createExchangeTransaction("PurseByn", "SafeUsd", info, day);
-
-                money["Byn"] -= info.to_sell_amount;
-                money["Usd"] += info.to_buy_amount;
-            }
-
-        }
+    if (isExchangePossible(money) && config.addExchangeTransactions) {
+        doExchanges(day, money);
     }
 
     return {
@@ -184,21 +151,24 @@ function isExchangePossible(money) {
 }
 
 function countSpendingsOnAccountByDate(date, account_name, type) {
-    return db.getCollection('account_transactions').aggregate([
-        { $match: { Date: { $lte: new Date(date) } } },
-        { $match: { "Account": getAccountIdByName(account_name) } },
-        { $match: { "Type": type } },
-        {
-            $group: {
-                _id: "$Account",
-                sum: { $sum: "$Value" }
-            }
-        },
-        { $project: { _id: 0, sum: 1 } }
-    ]).toArray()[0]["sum"]
+    try {
+        return db.getCollection('account_transactions').aggregate([
+            { $match: { Date: { $lte: new Date(date) } } },
+            { $match: { "Account": getAccountIdByName(account_name) } },
+            { $match: { "Type": type } },
+            {
+                $group: {
+                    _id: "$Account",
+                    sum: { $sum: "$Value" }
+                }
+            },
+            { $project: { _id: 0, sum: 1 } }
+        ]).toArray()[0]["sum"]; // if we can't get the value will get an error
+    } catch (e) {
+        return 0;
+    }
 }
 
-//print(countSpendingsOnAccountByDate("2016-06-30T00:00:00.000+03:00", "PurseByr", "Exp"))
 function getInfoForExchange(from, to, money, day) {
     var currency_rate = getCurrencyRateForTheDay(day),
         converted_amount,
@@ -241,3 +211,44 @@ function getInfoForExchange(from, to, money, day) {
     }
 }
 
+function doExchanges(day, money) {
+    var info = "";
+    if (money["Byr"] < 0 && money["Usd"] > 0) {
+
+        info = getInfoForExchange("Usd", "Byr", money, day);
+        createExchangeTransaction("SafeUsd", "PurseByr", info, day);
+
+        money["Usd"] -= info.to_sell_amount;
+        money["Byr"] += info.to_buy_amount;
+
+    } else if (money["Byr"] > 0 && money["Usd"] < 0) {
+        info = getInfoForExchange("Byr", "Usd", money, day);
+
+        // if we can't buy at least one dollar no exchange is possible
+        if (info) {
+            createExchangeTransaction("PurseByr", "SafeUsd", info, day);
+
+            money["Byr"] -= info.to_sell_amount;
+            money["Usd"] += info.to_buy_amount;
+        }
+
+    } else if (money["Byn"] < 0 && money["Usd"] > 0) {
+
+        info = getInfoForExchange("Usd", "Byn", money, day);
+        createExchangeTransaction("SafeUsd", "PurseByn", info, day);
+
+        money["Usd"] -= info.to_sell_amount;
+        money["Byn"] += info.to_buy_amount;
+
+    } else if (money["Byn"] > 0 && money["Usd"] < 0) {
+
+        // if we can't buy at least one dollar no exchange is possible
+        if (info) {
+            createExchangeTransaction("PurseByn", "SafeUsd", info, day);
+
+            money["Byn"] -= info.to_sell_amount;
+            money["Usd"] += info.to_buy_amount;
+        }
+
+    }
+}
