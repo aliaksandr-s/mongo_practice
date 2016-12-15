@@ -147,7 +147,6 @@ function countSpendingsForTheDay(day, money) {
             }
 
         }
-        //var exchange_info = getExchangeData(day, money)
     }
 
     return {
@@ -207,28 +206,28 @@ function getInfoForExchange(from, to, money, day) {
         to_sell_amount;
 
     if (from === "Usd") {
-        converted_amount = Math.round(money["Usd"] * currency_rate);
+        converted_amount = money["Usd"] * currency_rate;
 
         if (converted_amount < -money[to]) {
             to_buy_amount = converted_amount;
             to_sell_amount = money[from];
         } else {
-            to_buy_amount = -money[to];
-            to_sell_amount = Math.round(to_buy_amount / currency_rate);
+            to_sell_amount = Math.ceil(-money[to] / currency_rate);
+            to_buy_amount = to_sell_amount * currency_rate;
         }
 
     } else if (from === "Byr" || from === "Byn") {
-        converted_amount = Math.round(money["Byr"] / currency_rate);
+        converted_amount = Math.floor(money[from] / currency_rate);
 
         if (converted_amount < -money[to]) {
             to_buy_amount = converted_amount;
-            to_sell_amount = money[from];
+            to_sell_amount = to_buy_amount * currency_rate;
 
             if (currency_rate > to_sell_amount) return; // we should be able to buy at least 1 dollar
 
         } else {
             to_buy_amount = -money[to];
-            to_sell_amount = Math.round(to_buy_amount * currency_rate);
+            to_sell_amount = to_buy_amount * currency_rate;
         }
     }
 
