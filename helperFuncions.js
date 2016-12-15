@@ -7,7 +7,7 @@ function createExchangeTransaction(from, to, info, date){
         "Type": "Exp",
         "Operation Name": "Money Exchange",
         "Value": info.to_sell_amount,
-        "Currency": "Usd",
+        "Currency": from.slice(-3),
         "Account": getAccountIdByName(from),
         "Date": new Date(date)
     });
@@ -15,7 +15,7 @@ function createExchangeTransaction(from, to, info, date){
         "Type": "Inc",
         "Operation Name": "Money Exchange",
         "Value": info.to_buy_amount,
-        "Currency": "Byr",
+        "Currency": to.slice(-3),
         "Account": getAccountIdByName(to),
         "Date": new Date(date)
     });

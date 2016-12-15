@@ -1,3 +1,6 @@
+// show dbs
+// use finance
+
 db.loadServerScripts();
 load("helperFuncions.js");
 createCashFlow();
