@@ -106,14 +106,14 @@ function countSpendingsForTheDay(day, money) {
         createTransferTransaction("CardByr", "CardByn", cardByr_inc - cardByr_exp, day);
 
         //var needTransfer = {need: true, purseByr: -purseByr_amount, cardByr: cardByr_inc - cardByr_exp};
-        money["Byn"] += Math.round(money["Byr"] / 10000);
+        money["Byn"] += +(money["Byr"] / 10000).toFixed(2);
         money["Byr"] = 0;
     }
 
 
     // if money gets negative and we have money to exchange. Create two exchange transactions
     if (isExchangePossible(money) && config.addExchangeTransactions) {
-        doExchanges(day, money);
+        var info = doExchanges(day, money);
     }
 
     return {
@@ -177,6 +177,7 @@ function getInfoForExchange(from, to, money, day) {
 
     if (from === "Usd") {
         converted_amount = money["Usd"] * currency_rate;
+        if (to === "Byn") converted_amount = +converted_amount.toFixed(2);
 
         if (converted_amount < -money[to]) {
             to_buy_amount = converted_amount;
@@ -251,4 +252,5 @@ function doExchanges(day, money) {
         }
 
     }
+    return info;
 }
