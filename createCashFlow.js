@@ -254,3 +254,9 @@ function doExchanges(day, money) {
     }
     return info;
 }
+
+function doLoans(){
+    createFriendsCollection(3);
+}
+
+
