@@ -17,6 +17,8 @@ function createCashFlow() {
     db.getCollection('account_transactions').remove({ "Operation Name": "Money Exchange" });
     db.getCollection('account_transactions').remove({ "Operation Name": "Loan" });
 
+    createFriendsCollection(3);
+
     var dates = [],
         start_date = getFirstAndLastDates("Usd")["start_date"],
         end_date = getFirstAndLastDates("Usd")["end_date"],
@@ -119,8 +121,8 @@ function countSpendingsForTheDay(day, money) {
     }
 
     if (isLoanNecessary(money) && config.doLoans) {
-        var loanInfo = getLoanInfo(money)
-        doLoans(money, loanInfo)
+        var loanInfo = getLoanInfo(money);
+        doLoans(day, money, loanInfo)
     }
 
     return {
@@ -128,7 +130,7 @@ function countSpendingsForTheDay(day, money) {
         "Byr": money["Byr"],
         "Byn": money["Byn"],
         "Usd": money["Usd"],
-        "LoanInfo": loanInfo
+        "LoanInfo": loanInfo,
         //"info": info
         //"possibility": isExchangePossible(money),
         //"need transfer": needTransfer
@@ -159,17 +161,17 @@ function isExchangePossible(money) {
 }
 
 function isLoanNecessary(money) {
-    if (money["Byr"] < 0 || money["Byn"] < 0 || money["Usd"] < 0){
+    if (money["Byr"] < 0 || money["Byn"] < 0 || money["Usd"] < 0) {
         return true
     }
     return false;
 }
 
-function getLoanInfo(money){
+function getLoanInfo(money) {
     return {
-        "Byr": Math.ceil(Math.abs(money["Byr"])/1000000)*1000000,
-        "Byn": Math.ceil(Math.abs(money["Byn"])/100)*100,
-        "Usd": Math.ceil(Math.abs(money["Usd"])/100)*100
+        "Byr": Math.ceil(Math.abs(money["Byr"]) / 1000000) * 1000000,
+        "Byn": Math.ceil(Math.abs(money["Byn"]) / 100) * 100,
+        "Usd": Math.ceil(Math.abs(money["Usd"]) / 100) * 100
     }
 }
 
@@ -278,6 +280,20 @@ function doExchanges(day, money) {
     return info;
 }
 
-function doLoans(){
-    createFriendsCollection(3);
+function doLoans(day, money, loanInfo) {
+    var friend = db.getCollection('debts').find().limit(-1).skip(getRandomNumber(0, 2)).next(); // get one random person from 3
+
+    var accounts = {
+        "Byr": "PurseByr",
+        "Byn": "PurseByn",
+        "Usd": "SafeUsd"
+    }
+
+    for (var cur in loanInfo) {
+        if (loanInfo[cur] > 0) {
+            createLoanTransaction(day, cur, loanInfo[cur], accounts[cur], friend);
+        }
+    }
 }
+
+

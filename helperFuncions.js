@@ -42,14 +42,15 @@ function createTransferTransaction(from, to, amount, date) {
     });
 }
 
-function createLoanTransaction(){
+function createLoanTransaction(day, currency, value, account, friend){
     db.getCollection('account_transactions').insert({
-        "Type": "Exp",
+        "Type": "Inc",
         "Operation Name": "Loan",
-        "Value": amount,
-        "Currency": "Byr",
-        "Account": getAccountIdByName(from),
-        "Date": new Date(date)
+        "Friend": friend._id,
+        "Value": value,
+        "Currency": currency,
+        "Account": getAccountIdByName(account),
+        "Date": new Date(day)
     });    
 }
 
@@ -60,7 +61,7 @@ function createFriendsCollection(num) {
         names = ['Abbott', 'Acevedo', 'Acosta', 'Adams', 'Adkins', 'Aguilar', 'Aguirre',
                  'Albert', 'Alexander', 'Alford', 'Allen', 'Allison', 'Alston', 'Alvarado',
                  'Alvarez', 'Anderson', 'Andrews', 'Anthony', 'Armstrong', 'Arnold', 'Ashley',
-                 'Atkins', 'Atkinson', 'Austin', 'Avery', 'Avila', 'Ayala', 'Ayers',]
+                 'Atkins', 'Atkinson', 'Austin', 'Avery', 'Avila', 'Ayala', 'Ayers']
 
     for (var i = 0; i < num; i++) {
         debts.insert({name: names[getRandomNumber(0, names.length-1)]});
