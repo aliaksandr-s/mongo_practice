@@ -109,7 +109,6 @@ function countSpendingsForTheDay(day, money) {
         createTransferTransaction("PurseByr", "PurseByn", purseByr_inc - purseByr_exp, day);
         createTransferTransaction("CardByr", "CardByn", cardByr_inc - cardByr_exp, day);
 
-        //var needTransfer = {need: true, purseByr: -purseByr_amount, cardByr: cardByr_inc - cardByr_exp};
         money["Byn"] += +(money["Byr"] / 10000).toFixed(2);
         money["Byr"] = 0;
     }
@@ -119,6 +118,7 @@ function countSpendingsForTheDay(day, money) {
     if (isExchangePossible(money) && config.addExchangeTransactions) {
         var info = doExchanges(day, money);
     }
+
 
     if (isLoanNecessary(money) && config.doLoans) {
         var loanInfo = getLoanInfo(money);
@@ -169,9 +169,9 @@ function isLoanNecessary(money) {
 
 function getLoanInfo(money) {
     return {
-        "Byr": Math.ceil(Math.abs(money["Byr"]) / 1000000) * 1000000,
-        "Byn": Math.ceil(Math.abs(money["Byn"]) / 100) * 100,
-        "Usd": Math.ceil(Math.abs(money["Usd"]) / 100) * 100
+        "Byr": money["Byr"] < 0 ? Math.ceil(Math.abs(money["Byr"]) / 1000000) * 1000000 : 0,
+        "Byn": money["Byn"] < 0 ? Math.ceil(Math.abs(money["Byn"]) / 100) * 100 : 0,
+        "Usd": money["Usd"] < 0 ? Math.ceil(Math.abs(money["Usd"]) / 100) * 100 : 0
     }
 }
 
@@ -267,6 +267,7 @@ function doExchanges(day, money) {
         money["Byn"] += info.to_buy_amount;
 
     } else if (money["Byn"] > 0 && money["Usd"] < 0) {
+        info = getInfoForExchange("Byn", "Usd", money, day);
 
         // if we can't buy at least one dollar no exchange is possible
         if (info) {
@@ -280,6 +281,7 @@ function doExchanges(day, money) {
     return info;
 }
 
+
 function doLoans(day, money, loanInfo) {
     var friend = db.getCollection('debts').find().limit(-1).skip(getRandomNumber(0, 2)).next(); // get one random person from 3
 
@@ -292,6 +294,8 @@ function doLoans(day, money, loanInfo) {
     for (var cur in loanInfo) {
         if (loanInfo[cur] > 0) {
             createLoanTransaction(day, cur, loanInfo[cur], accounts[cur], friend);
+
+            money[cur] += loanInfo[cur];
         }
     }
 }
