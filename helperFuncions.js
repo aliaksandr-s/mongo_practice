@@ -42,6 +42,17 @@ function createTransferTransaction(from, to, amount, date) {
     });
 }
 
+function createLoanTransaction(){
+    db.getCollection('account_transactions').insert({
+        "Type": "Exp",
+        "Operation Name": "Loan",
+        "Value": amount,
+        "Currency": "Byr",
+        "Account": getAccountIdByName(from),
+        "Date": new Date(date)
+    });    
+}
+
 function createFriendsCollection(num) {
     db.getCollection('debts').remove({});
 

@@ -2,7 +2,8 @@
 // use finance
 
 var config = {
-    addExchangeTransactions: true
+    addExchangeTransactions: true,
+    doLoans: true
 }
 
 db.loadServerScripts();
@@ -14,6 +15,7 @@ function createCashFlow() {
     db.getCollection('cash_flow').remove({})
     db.getCollection('account_transactions').remove({ "Operation Name": "Transfer" });
     db.getCollection('account_transactions').remove({ "Operation Name": "Money Exchange" });
+    db.getCollection('account_transactions').remove({ "Operation Name": "Loan" });
 
     var dates = [],
         start_date = getFirstAndLastDates("Usd")["start_date"],
@@ -116,13 +118,19 @@ function countSpendingsForTheDay(day, money) {
         var info = doExchanges(day, money);
     }
 
+    if (isLoanNecessary(money) && config.doLoans) {
+        var loanInfo = getLoanInfo(money)
+        doLoans(money, loanInfo)
+    }
+
     return {
         "Date": new Date(day),
         "Byr": money["Byr"],
         "Byn": money["Byn"],
         "Usd": money["Usd"],
+        "LoanInfo": loanInfo
+        //"info": info
         //"possibility": isExchangePossible(money),
-        //"info": info,
         //"need transfer": needTransfer
     }
 }
@@ -147,6 +155,21 @@ function isExchangePossible(money) {
         return true;
     } else {
         return false;
+    }
+}
+
+function isLoanNecessary(money) {
+    if (money["Byr"] < 0 || money["Byn"] < 0 || money["Usd"] < 0){
+        return true
+    }
+    return false;
+}
+
+function getLoanInfo(money){
+    return {
+        "Byr": Math.ceil(Math.abs(money["Byr"])/1000000)*1000000,
+        "Byn": Math.ceil(Math.abs(money["Byn"])/100)*100,
+        "Usd": Math.ceil(Math.abs(money["Usd"])/100)*100
     }
 }
 
@@ -258,5 +281,3 @@ function doExchanges(day, money) {
 function doLoans(){
     createFriendsCollection(3);
 }
-
-
