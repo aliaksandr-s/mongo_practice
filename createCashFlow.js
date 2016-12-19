@@ -77,7 +77,7 @@ function countSpendingsForTheDay(day, money) {
                     money["Byr"] -= transaction["Value"];
                     break;
                 case "Byn":
-                    money["Byn"] -= transaction["Value"];
+                    money["Byn"] = +(money["Byn"] - transaction["Value"]).toFixed(2);
                     break;
             }
 
@@ -91,7 +91,7 @@ function countSpendingsForTheDay(day, money) {
                     money["Byr"] += transaction["Value"];
                     break;
                 case "Byn":
-                    money["Byn"] += transaction["Value"];
+                    money["Byn"] = +(money["Byn"] + transaction["Value"]).toFixed(2);
                     break;
             }
 
@@ -130,7 +130,7 @@ function countSpendingsForTheDay(day, money) {
         "Byr": money["Byr"],
         "Byn": money["Byn"],
         "Usd": money["Usd"],
-        "LoanInfo": loanInfo,
+        //"LoanInfo": loanInfo,
         //"info": info
         //"possibility": isExchangePossible(money),
         //"need transfer": needTransfer
@@ -227,6 +227,9 @@ function getInfoForExchange(from, to, money, day) {
         }
     }
 
+    if (to === "Byn") to_buy_amount = +to_buy_amount.toFixed(2);
+    if (from === "Byn") to_sell_amount = +to_sell_amount.toFixed(2);
+
     return {
         to_sell_currency: from,
         to_sell_amount: to_sell_amount,
@@ -264,7 +267,7 @@ function doExchanges(day, money) {
         createExchangeTransaction("SafeUsd", "PurseByn", info, day);
 
         money["Usd"] -= info.to_sell_amount;
-        money["Byn"] += info.to_buy_amount;
+        money["Byn"] = +(money["Byn"] += info.to_buy_amount).toFixed(2);
 
     } else if (money["Byn"] > 0 && money["Usd"] < 0) {
         info = getInfoForExchange("Byn", "Usd", money, day);
@@ -273,7 +276,7 @@ function doExchanges(day, money) {
         if (info) {
             createExchangeTransaction("PurseByn", "SafeUsd", info, day);
 
-            money["Byn"] -= info.to_sell_amount;
+            money["Byn"] = +(money["Byn"] -= info.to_sell_amount).toFixed(2);
             money["Usd"] += info.to_buy_amount;
         }
 
